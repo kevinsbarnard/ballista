@@ -6,12 +6,12 @@ import wiringpi
 import numpy as np
 
 MAIN_WINDOW = 'Main Window'
-PRESCALE = 0.3
+PRESCALE = 0.2
 AZ_MOTOR = 1
 ALT_MOTOR = 2
 
-AZ_PWM_PIN = 13
-ALT_PWM_PIN = 12
+AZ_PWM_PIN = 12
+ALT_PWM_PIN = 13
 
 PWM_TIME_LO = 50
 PWM_TIME_HI = 250
@@ -31,14 +31,6 @@ rect_model = np.array([
 	[0, face_height, 0],
 	[face_width, face_height, 0]
 ], dtype=np.float32)
-
-
-queue = []
-
-
-def fire():
-	""" Fire! """
-	print('FIRE!')
 
 
 def set_angle(motor, deg):
@@ -87,27 +79,20 @@ def update(frame, face_cascade):
 			[x+w, y+h]
 		], dtype=np.float32)
 		
-		x, y, z = get_pose(rect_corners)
-		az = np.pi/2 - np.arctan2(x, z)[0]
+		phys_x, phys_y, phys_z = get_pose(rect_corners)
+		az = np.pi/2 - np.arctan2(phys_x, phys_z)[0]
 		az *= 180/np.pi
 		set_angle(AZ_PWM_PIN, az)
 		
-		alt1, alt2 = get_alt_angles(z, y)
+		alt1, alt2 = get_alt_angles(phys_z, phys_y)
 		alt1 *= 180/np.pi
 		alt2 *= 180/np.pi
 		alt = alt2
 		set_angle(ALT_PWM_PIN, alt + np.pi/2)
 		
-		global queue
-		comp = az*alt
-		queue.insert(0, comp)
-		queue = queue[:10]
-		
-		if len(queue) == 10:
-			if abs(comp - sum(queue)/len(queue)) < 10:
-				fire()
-		
 		print('AZ: {0:.1f} deg, ALT1: {1:.1f} deg, (ALT2: {2:.1f} deg)'.format(az, alt1, alt2))
+		
+		cv2.putText(frame, '({0:.2f}, {1:.2f}, {2:.2f})'.format(phys_x[0], phys_y[0], phys_z[0]), (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0))
 			
 	cv2.imshow(MAIN_WINDOW, frame)
 
